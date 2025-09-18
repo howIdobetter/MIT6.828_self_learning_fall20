@@ -86,3 +86,86 @@ int main(int argc, int *argv[]) {
   }
 }
 ```
+
+
+## primes
+```c
+#include "kernel/types.h"
+#include "user/user.h"
+
+/**
+ * We create mutiply processes to finish the
+ * primes.
+ */
+
+/**
+ * Create a new process
+ */
+void new_process(int p[2]) {
+  int n;
+  int prime;
+  close(p[1]);
+  int count1 = read(p[0], &prime, 4);
+  if (count1 != 4 && count1 != 0) {
+    fprintf(2, "failed to received a prime\n");
+    exit(1);
+  }
+  int count2 = read(p[0], &n, 4);
+  if (count2 != 0 && count2 != 4) {
+    fprintf(2, "count is not true\n");
+    exit(1);
+  }
+  if (count1) {
+    printf("prime %d\n", prime);
+  }
+  if (count2) {
+    int newp[2];
+    pipe(newp);
+    if (fork() == 0) {
+      new_process(newp);
+    } else {
+      close(newp[0]);
+      if (n % prime != 0) {
+        if (write(newp[1], &n, 4) != 4) {
+          fprintf(2, "%d failed to write to newp[1]\n", n);
+        }
+      }
+      while (read(p[0], &n, 4) == 4) {
+        if (n % prime != 0) {
+          if (write(newp[1], &n, 4) != 4) {
+            fprintf(2, "%d failed to write to newp[1]\n", n);
+          }
+        }
+      }
+      close(p[0]);
+      close(newp[1]);
+      wait(0);
+    }
+  }
+  exit(0);
+}
+
+int main() {
+  int p[2];
+  pipe(p);
+  int n;
+
+  if (fork() == 0) {
+    new_process(p);
+  } else {
+    close(p[0]);
+    for (int i = 2; i <= 35; i++) {
+      n = i;
+      if (write(p[1], &n, 4) != 4) {
+        fprintf(2, "The first process failed to write number %d\n", i);
+        exit(1);
+      }
+    }
+    close(p[1]);
+    wait(0);
+    exit(0);
+  }
+
+  exit(0);
+}
+```
