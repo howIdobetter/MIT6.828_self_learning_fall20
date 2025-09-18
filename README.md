@@ -1,2 +1,2 @@
 # MIT6.828_self_learning_fall20
-(lab1: Utils)[]
+[lab1: Utils](https://github.com/howIdobetter/MIT6.828_self_learning_fall20/blob/main/lab1.md)
