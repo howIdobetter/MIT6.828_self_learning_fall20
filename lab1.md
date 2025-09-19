@@ -249,93 +249,94 @@ int main(int argc, char *argv[]) {
 ## xargs
 ```c
 #include "kernel/types.h"
-#include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/param.h"
 
 #define MAX_LINE 1024
 
-int read_line(char *new_argv[MAXARG], int curr_argc) {
-    static char buf[MAX_LINE];
-    int n = 0;
-    char ch;
-    
-    while (read(0, &ch, 1) > 0) {
-        if (n >= MAX_LINE - 1) {
-            fprintf(2, "xargs: line too long\n");
-            return -1;
-        }
-        if (ch == '\n') {
-            break;
-        }
-        buf[n++] = ch;
+int
+read_line(char *cmd_argv[], int init_argc) {
+  char ch;
+  char buf[MAX_LINE];
+  int n = 0;
+
+  while (read(0, &ch, 1) > 0) {
+    if (n >= MAX_LINE - 1) {
+      fprintf(2, "xargs: too long line!\n");
+      return -1;
     }
-    
-    if (n == 0 && read(0, &ch, 1) <= 0) {
-        return 0;
+    if (ch =='\n') {
+      break;
     }
-    
-    buf[n] = '\0';
-    
-    char *p = buf;
-    while (*p && curr_argc < MAXARG - 1) {
-        while (*p == ' ' || *p == '\t') {
-            p++;
-        }
-        if (!*p) break;
-        
-        new_argv[curr_argc++] = p;
-        
-        while (*p && *p != ' ' && *p != '\t') {
-            p++;
-        }
-        
-        if (*p) {
-            *p++ = '\0';
-        }
+    buf[n++] = ch;
+  }
+
+  if (n == 0 && read(0, &ch, 1) <= 0) {
+    return 0;
+  }
+
+  buf[n] = '\0';
+  int curr_argc = init_argc;
+
+  char *p = buf;
+  while (*p && curr_argc < MAXARG - 1) {
+    while (*p == ' ' || *p == '\t') {
+      p++;
     }
-    
-    return curr_argc;
+    if (!*p) break;
+
+    cmd_argv[curr_argc++] = p;
+
+    while (*p && *p != ' ' && *p != '\t') {
+      p++;
+    }
+    if (*p) *p++ = '\0';
+
+  }
+  return curr_argc;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(2, "Usage: xargs <command> [args...]\n");
-        exit(1);
+int
+main(int argc, char *argv[]) {
+  if (argc < 2) {
+    fprintf(2, "xargs: Your format should be xargs <command> [args...]\n");
+    exit(1);
+  }
+  if (argc -1 > MAXARG) {
+    fprintf(2, "xargs: too many arguments!\n");
+    exit(1);
+  }
+
+  // prepare args for exec
+  char *exec_argv[MAXARG];
+  int i;
+  for (i = 1; i < argc && i - 1 < MAXARG; i++) {
+    exec_argv[i - 1] = argv[i];
+  }
+  int init_argc = i - 1;
+
+  int line_argc;
+  while ((line_argc = read_line(exec_argv, init_argc)) > 0) {
+    if (line_argc > MAXARG) {
+      fprintf(2, "xargs: too many arguments in input!\n");
+      continue;
     }
-    
-    char *cmd_argv[MAXARG];
-    int i;
-    
-    for (i = 1; i < argc && i - 1 < MAXARG; i++) {
-        cmd_argv[i - 1] = argv[i];
+    exec_argv[line_argc] = 0;
+
+    int pid = fork();
+    if (pid < 0) {
+      fprintf(2, "xargs: failed to fork!\n");
+      exit(1);
     }
-    int base_argc = i - 1;
-    
-    int line_argc;
-    while ((line_argc = read_line(cmd_argv, base_argc)) > 0) {
-        if (line_argc >= MAXARG) {
-            fprintf(2, "xargs: too many arguments\n");
-            continue;
-        }
-        
-        cmd_argv[line_argc] = 0;
-        
-        int pid = fork();
-        if (pid < 0) {
-            fprintf(2, "xargs: fork failed\n");
-            exit(1);
-        }
-        
-        if (pid == 0) {
-            exec(cmd_argv[0], cmd_argv);
-            fprintf(2, "xargs: exec %s failed\n", cmd_argv[0]);
-            exit(1);
-        } else {
-            wait(0);
-        }
+
+    if (pid == 0) {
+      exec(exec_argv[0], exec_argv);
+      fprintf(2, "xargs: failed to exec");
+      exit(1);
+    } else {
+      wait(0);
     }
-    
-    exit(0);
+  }
+  exit(0);
 }
 ```
