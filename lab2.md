@@ -282,3 +282,58 @@ syscall(void)
   }
 }
 ```
+## 2. sysinfo
+- `kernel/sysproc.c`
+```c
+uint64
+sys_sysinfo(void) {
+  uint64 addr;
+  struct sysinfo info;
+
+  if (argaddr(0, &addr) < 0)
+    return -1;
+
+  info.freemem = get_freemem();
+  info.nproc = get_nproc();
+
+  if (copyout(myproc()->pagetable, addr, (char *)&info, sizeof(info)) < 0)
+    return -1;
+
+  return 0;
+}
+```
+- `kernel/proc.c`
+```c
+uint64
+get_nproc(void) {
+  struct proc *p;
+  uint64 count = 0;
+  for (p = proc; p < proc + NPROC; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      count++;
+    }
+    release(&p->lock);
+  }
+  return count;
+}
+```
+- `kernel/kalloc.c`
+```c
+uint64
+get_freemem(void)
+{
+    struct run *r;
+    uint64 pages = 0;
+
+    acquire(&kmem.lock);
+    r = kmem.freelist;
+    while(r) {
+        pages++;
+        r = r->next;
+    }
+    release(&kmem.lock);
+
+    return pages * PGSIZE;
+}
+```
