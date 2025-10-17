@@ -33,4 +33,8 @@ vmprint(pagetable_t pagetable) {
 }
 ```
 
+为什么要pagetable[i]？非常简单，每次给你的pagetable都是起始地址，而每个pagetable都分配了 `2^9`也就是512个pte。然后依次类推，三级页表都是这么设计的。
+
+## 2. A kernel page table per process(hard)
+
 Hint: Don't forget to add vmprint declaration in kernel/defs.h and add if(p->pid == 1) ... in kernel/exec.c;
