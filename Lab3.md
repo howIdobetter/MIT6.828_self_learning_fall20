@@ -512,3 +512,13 @@ virtio_disk_rw(struct buf *b, int write)
 ```
 
 Ok, that's all, too hard.  -----qwq
+
+## 3. Simplify copyin/copyinstr (hard)
+
+Firstly, we replace copyin and copyinstr in vm.c, and it's easy to implement.
+
+Then we can create copy_user_to_kernel.
+
+Last change userinit, growproc, exec, fork.
+
+That's all.
