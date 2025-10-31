@@ -84,3 +84,41 @@ sys_sigalarm(void)
   return 0;
 }
 ```
+
+test1/test2:
+
+```c
+uint64
+sys_sigreturn(void)
+{
+  struct proc *p = myproc();
+  p->alarm_going_off = 0;
+  memmove(p->trapframe, &p->alarm_saved_trapframe, sizeof(struct trapframe));
+  return 0;
+}
+
+usertrap()
+// give up the CPU if this is a timer interrupt.
+  if(which_dev == 2) {
+    struct proc *p = myproc();
+    if (p && p->alarm_interval > 0) {
+      p->alarm_ticks++;
+      if (p->alarm_ticks >= p->alarm_interval && !p->alarm_going_off) {
+        memmove(&p->alarm_saved_trapframe, p->trapframe, sizeof(struct trapframe));
+        p->trapframe->epc = (uint64)p->handler_function;
+        p->alarm_ticks = 0;
+        p->alarm_going_off = 1;
+      }
+    }
+    yield();
+  }
+
+struct proc
+=== add ===
+int alarm_interval;
+  void *handler_function;
+  int alarm_ticks;
+  struct trapframe alarm_saved_trapframe;
+  int alarm_going_off;
+=== add ===
+```
