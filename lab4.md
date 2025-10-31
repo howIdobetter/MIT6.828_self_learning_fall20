@@ -47,3 +47,40 @@ backtrace()
 Don't forget add it to defs.h and the beginning of sys_sleep() in sysproc.
 
 ## 3. Alarm(`hard`)
+
+just provide the core code:
+
+test0
+
+```c
+usertrap()
+// give up the CPU if this is a timer interrupt.
+  if(which_dev == 2) {
+    struct proc *p = myproc();
+    if (p && p->alarm_interval > 0) {
+      p->alarm_ticks++;
+      if (p->alarm_ticks >= p->alarm_interval) {
+        p->trapframe->epc = (uint64)p->handler_function;
+        p->alarm_ticks = 0;
+      }
+    }
+    yield();
+  }
+
+uint64
+sys_sigalarm(void)
+{
+  int ticks;
+  uint64 handler;
+  if (argint(0, &ticks) < 0)
+    return -1;
+  if (argaddr(1, &handler) < 0)
+    return -1;
+  
+  myproc()->alarm_interval = ticks;
+  myproc()->handler_function = (void *)handler;
+  myproc()->alarm_ticks = 0;
+
+  return 0;
+}
+```
