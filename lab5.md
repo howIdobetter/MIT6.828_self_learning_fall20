@@ -132,3 +132,16 @@ usertrap(void)
   usertrapret();
 }
 ```
+## 3. Lazytests and Usertests (moderate)
+
+需要弄清楚的是，在这里，我们如何产生懒分配的page fault，在用户态，我们sbrk之后可能直接对那个地址进行赋值，但是实际上那个地址不存在（还没有分配），因此造成了page fault，事实上，以上我们解决的是这个问题，但是还有一种情况就是我们主动进行系统调用，同样造成了page fault，因此我们需要对sys_write和sys_read进行修改，同样需要检查那个地址满足以下条件：
+
+1. Kill a process if it page-faults on a virtual memory address higher than any allocated with sbrk().
+2. Handle out-of-memory correctly: if kalloc() fails in the page fault handler, kill the current process.
+3. Handle faults on the invalid page below the user stack.
+
+这里第二条非常好理解，就是kalloc失败杀死进程，第一条就是我们发生page-fault的va > p->sz，我们sbrk分配的堆空间，坑定不能大于啊，第三条就是page fault发生在保护页及以下，这显然查出了我们的用户栈。
+
+最后在过程中还遇到了一个bug，就是remap的检查，注意要在lazy_alloc_page中添加对已分配的页面的检查。
+
+
