@@ -8,4 +8,4 @@
 
 [lab4: Trap](https://github.com/howIdobetter/MIT6.828_self_learning_fall20/blob/main/lab4.md)
 
-[lab5: Lazy alloction]([https://github.com/howIdobetter/MIT6.828_self_learning_fall20/new/main](https://github.com/howIdobetter/MIT6.828_self_learning_fall20/blob/main/lab5.md))
+[lab5: Lazy alloction](https://github.com/howIdobetter/MIT6.828_self_learning_fall20/blob/main/lab5.md)
